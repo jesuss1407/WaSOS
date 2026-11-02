@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Pytest al guardar backend",
+      "trigger": "PostFileSave",
+      "description": "CUANDO el agente guarda un archivo .py dentro de backend/ (trigger PostFileSave + matcher backend/.*\\.py$) ENTONCES ejecuta pytest -q tests: prioridad, geo y bbox, validación, bloqueo optimista, CSV e integración con DynamoDB/S3 simulados (moto). Un test en rojo indica que el cambio rompió una regla de negocio.",
+      "matcher": "backend/.*\\.py$",
+      "action": {
+        "type": "command",
+        "command": "cd backend && uv run --quiet --python 3.12 --with-requirements requirements-dev.txt pytest -q tests"
+      }
+    }
+  ]
+}

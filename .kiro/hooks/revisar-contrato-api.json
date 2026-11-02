@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Revisar alineación del contrato de API",
+      "trigger": "PostFileSave",
+      "description": "CUANDO el agente guarda .kiro/steering/api-contract.md (trigger PostFileSave + matcher \\.kiro/steering/api-contract\\.md$) ENTONCES el agente revisa que las rutas de app.py, los eventos de template.yaml, los métodos de api.js y los enums de backend y frontend sigan alineados con el contrato, y reporta diferencias sin modificar archivos.",
+      "matcher": "\\.kiro/steering/api-contract\\.md$",
+      "action": {
+        "type": "agent",
+        "prompt": "Se modificó .kiro/steering/api-contract.md. Verifica que siguen alineados con el contrato: (1) las rutas de RUTAS en backend/src/app.py, (2) los eventos HttpApi de backend/template.yaml, (3) los métodos de frontend/src/api.js, y (4) los enums de backend/src/dominio/catalogos.py y frontend/src/catalogos.js. Para (1), (2) y (4) puedes correr: cd backend && uv run --quiet --python 3.12 --with-requirements requirements-dev.txt pytest -q tests/test_contrato.py. Lista cada diferencia encontrada con archivo y línea, y propone el cambio mínimo. No modifiques archivos sin confirmación."
+      }
+    }
+  ]
+}

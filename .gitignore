@@ -1,0 +1,13 @@
+# Secretos locales
+backend/.admin-key
+.env
+.env.local
+frontend/.env.local
+
+# Artefactos de build
+backend/.aws-sam/
+frontend/node_modules/
+frontend/dist/
+*.zip
+__pycache__/
+.pytest_cache/

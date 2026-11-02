@@ -1,0 +1,5 @@
+# Dependencias de pruebas (no se despliegan). Uso:
+#   cd backend && uv run --python 3.12 --with-requirements requirements-dev.txt pytest -q tests
+-r src/requirements.txt
+pytest>=8
+moto[dynamodb,s3]>=5

@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Revisar tasks.md al guardar la spec",
+  "description": "CUANDO se guarda requirements.md, design.md o tasks.md de una spec en .kiro/specs/ ENTONCES el agente revisa que tasks.md de esa carpeta cubra cada requisito R*.* con al menos una tarea, que cada tarea cite archivo y test reales y que el orden respete las dependencias. Solo reporta; no modifica archivos.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      ".kiro/specs/*/requirements.md",
+      ".kiro/specs/*/design.md",
+      ".kiro/specs/*/tasks.md"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Se guardó un archivo de spec en .kiro/specs/. En la carpeta de esa spec: (1) lista los requisitos R*.* de requirements.md que no aparecen en ninguna línea _Requisitos_ de tasks.md; (2) verifica que cada archivo y test citado en tasks.md exista en el repo (los tests están en backend/tests/ y frontend/src/lib/*.test.js); (3) revisa que las tareas sigan un orden de dependencias (infraestructura, datos, rutas, contrato, despliegue, documentación); (4) confirma que design.md solo use servicios declarados en backend/template.yaml. Reporta cada diferencia con archivo y línea y propone el cambio mínimo. No modifiques archivos sin confirmación."
+  }
+}

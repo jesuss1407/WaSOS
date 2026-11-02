@@ -1,0 +1,198 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Alerta Piura - mapa ciudadano de riesgo FEN (MVP hackaton Kiro + AWS)
+
+Parameters:
+  TeamId:
+    Type: String
+    MinLength: 1
+    Description: Id público del equipo en el portal de la Kiro IAthon (GET /health lo devuelve en "team").
+  AdminKey:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+    Description: Clave compartida del tablero (header X-Admin-Key). Roadmap - Cognito con roles.
+  ModelIds:
+    Type: String
+    Default: anthropic.claude-sonnet-5,anthropic.claude-opus-4-8
+    Description: Modelos Claude en Bedrock (endpoint bedrock-mantle), en orden de preferencia.
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Default: "*"
+    Description: Orígenes permitidos para CORS (dominio de Amplify Hosting y localhost).
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [x86_64]
+    Timeout: 29
+    MemorySize: 1024
+    LoggingConfig:
+      LogFormat: JSON
+      ApplicationLogLevel: INFO
+
+Resources:
+  # Bucket privado: los buckets nuevos ya tienen Block Public Access y ACL deshabilitadas por defecto
+  # (la cuenta de la hackatón niega s3:PutBucketPublicAccessBlock, por eso no se declara aquí).
+  FotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [PUT, GET]
+            AllowedOrigins: !Ref AllowedOrigins
+            AllowedHeaders: [content-type]
+            MaxAge: 3000
+
+  FotosBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FotosBucket
+      PolicyDocument:
+        Statement:
+          - Sid: SoloHTTPS
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt FotosBucket.Arn
+              - !Sub "${FotosBucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  ReportesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # Insignia "Persistencia" (Kiro IAthon): tabla aparte para no mezclar ítems con los reportes del mapa.
+  ItemsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: !Ref AllowedOrigins
+        AllowHeaders: [content-type, x-admin-key]
+        AllowMethods: [GET, POST, PATCH, OPTIONS]
+        ExposeHeaders: [content-disposition]
+        MaxAge: 600
+      DefaultRouteSettings:
+        ThrottlingRateLimit: 20
+        ThrottlingBurstLimit: 50
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Router unico de la API Alerta Piura
+      CodeUri: src/
+      Handler: app.handler
+      Environment:
+        Variables:
+          TABLA_REPORTES: !Ref ReportesTable
+          BUCKET_FOTOS: !Ref FotosBucket
+          ADMIN_KEY: !Ref AdminKey
+          MODEL_IDS: !Ref ModelIds
+          TEAM_ID: !Ref TeamId
+          TABLE_NAME: !Ref ItemsTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReportesTable
+        - Statement:
+            - Sid: ItemsSoloCrearLeerListar
+              Effect: Allow
+              Action: [dynamodb:PutItem, dynamodb:GetItem, dynamodb:Scan]
+              Resource: !GetAtt ItemsTable.Arn
+            - Sid: FotosLecturaEscritura
+              Effect: Allow
+              Action: [s3:GetObject, s3:PutObject]
+              Resource: !Sub "${FotosBucket.Arn}/fotos/*"
+            - Sid: ClaudeEnBedrockMantle
+              Effect: Allow
+              Action: [bedrock-mantle:CreateInference]
+              Resource: "*"
+      Events:
+        Salud:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /health, Method: GET}
+        CrearItem:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /items, Method: POST}
+        ObtenerItem:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: "/items/{id}", Method: GET}
+        ListarItems:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /items, Method: GET}
+        CrearTrabajo:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /jobs, Method: POST}
+        ObtenerTrabajo:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: "/jobs/{jobId}", Method: GET}
+        CrearUpload:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /uploads, Method: POST}
+        CrearReporte:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /reportes, Method: POST}
+        ListarReportes:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /reportes, Method: GET}
+        Confirmar:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: "/reportes/{id}/confirmar", Method: POST}
+        AdminListar:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /admin/reportes, Method: GET}
+        AdminActualizar:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: "/admin/reportes/{id}", Method: PATCH}
+        AdminResumen:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /admin/resumen, Method: GET}
+        AdminExportar:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /admin/export.csv, Method: GET}
+        AdminParte:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /admin/parte-situacional, Method: POST}
+
+  ApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiFunction}"
+      RetentionInDays: 30
+
+Outputs:
+  ApiUrl:
+    Description: URL base de la API
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  TablaReportes:
+    Value: !Ref ReportesTable
+  TablaItems:
+    Value: !Ref ItemsTable
+  BucketFotos:
+    Value: !Ref FotosBucket

@@ -1,0 +1,12 @@
+[
+  {"nombre": "Piura", "lat": -5.1945, "lon": -80.6328, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (centro urbano)"},
+  {"nombre": "Castilla", "lat": -5.1980, "lon": -80.6140, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (centro urbano)"},
+  {"nombre": "Veintiséis de Octubre", "lat": -5.1820, "lon": -80.6650, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (centro urbano)"},
+  {"nombre": "Catacaos", "lat": -5.2655, "lon": -80.6761, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (Plaza de Armas de Catacaos)"},
+  {"nombre": "Cura Mori", "lat": -5.3203, "lon": -80.6637, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (Cucungará, capital)"},
+  {"nombre": "El Tallán", "lat": -5.4092, "lon": -80.6814, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (Sinchao, capital)"},
+  {"nombre": "La Arena", "lat": -5.3466, "lon": -80.7109, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (La Arena, capital)"},
+  {"nombre": "La Unión", "lat": -5.4044, "lon": -80.7439, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (La Unión, capital)"},
+  {"nombre": "Las Lomas", "lat": -4.6578, "lon": -80.2433, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (Las Lomas, capital)"},
+  {"nombre": "Tambogrande", "lat": -4.9353, "lon": -80.3424, "coordenada_aproximada": true, "fuente": "OpenStreetMap/Nominatim (Tambogrande, capital)"}
+]
